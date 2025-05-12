@@ -1,0 +1,35 @@
+require('dotenv').config();
+const axios = require('axios');
+
+const hubspotApiUrl = 'https://api.hubapi.com';
+const customObjectId = '2-153297826'; // Your custom object ID
+const token = process.env.PRIVATE_APP_TOKEN;
+
+const headers = {
+  Authorization: `Bearer ${token}`,
+  'Content-Type': 'application/json'
+};
+
+async function testAPI() {
+  try {
+    const response = await axios.get(
+      `${hubspotApiUrl}/crm/v3/objects/${customObjectId}`,
+      { 
+        headers,
+        params: { 
+          properties: ['name', 'breed', 'age'],
+          limit: 100
+        }
+      }
+    );
+    
+    console.log('API Response:', JSON.stringify(response.data, null, 2));
+  } catch (error) {
+    console.error('Error:', error.message);
+    if (error.response) {
+      console.error('Response data:', error.response.data);
+    }
+  }
+}
+
+testAPI();
