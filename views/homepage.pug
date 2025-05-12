@@ -1,0 +1,22 @@
+doctype html
+html
+  head
+    title= title
+    link(rel='stylesheet', href='/css/style.css')
+  body
+    h1 My Custom Objects
+    
+    a(href="/update-cobj") Add to this table
+    
+    table
+      thead
+        tr
+          th Name
+          th Breed
+          th Age
+      tbody
+        each obj in customObjects
+          tr
+            td= obj.properties.name
+            td= obj.properties.breed
+            td= obj.properties.age

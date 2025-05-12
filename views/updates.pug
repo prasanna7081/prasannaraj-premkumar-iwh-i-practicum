@@ -1,0 +1,25 @@
+doctype html
+html
+  head
+    title= title
+    link(rel='stylesheet', href='/css/style.css')
+  body
+    h1 Add New Custom Object
+    
+    a(href="/") Return to the homepage
+    
+    form(action="/update-cobj", method="POST")
+      div.form-group
+        label(for="name") Name:
+        input(type="text", name="name", required)
+      
+      div.form-group
+        label(for="breed") Breed:
+        input(type="text", name="breed", required)
+      
+      div.form-group
+        label(for="age") Age:
+        input(type="text", name="age", required)
+      
+      button(type="submit") Create
+
