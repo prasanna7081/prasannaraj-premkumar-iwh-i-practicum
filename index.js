@@ -1,71 +1,110 @@
+require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
-const app = express();
+const path = require('path');
 
-app.set('view engine', 'pug');
-app.use(express.static(__dirname + '/public'));
+const app = express();
+const port = 3000;
+
+// HubSpot API configuration
+const hubspotApiUrl = 'https://api.hubapi.com';
+const headers = {
+  Authorization: `Bearer ${process.env.PRIVATE_APP_TOKEN}`,
+  'Content-Type': 'application/json'
+};
+
+// IMPORTANT: You need to use the API name, not the ID number!
+// Replace with your custom object's API name (e.g., "p_pet")
+// Find this in HubSpot under Settings → Data Management → Objects → Your Custom Object → API name
+const objectType = "p_pets"; // CHANGE THIS to your actual API name!
+
+// Your custom property names
+const property2Name = "breed"; // Looks like you're using "breed"
+const property3Name = "age";   // Looks like you're using "age"
+
+// Configure Express
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+app.set('view engine', 'pug');
+app.set('views', path.join(__dirname, 'views'));
 
-// * Please DO NOT INCLUDE the private app access token in your repo. Don't do this practicum in your normal account.
-const PRIVATE_APP_ACCESS = '';
-
-// TODO: ROUTE 1 - Create a new app.get route for the homepage to call your custom object data. Pass this data along to the front-end and create a new pug template in the views folder.
-
-// * Code for Route 1 goes here
-
-// TODO: ROUTE 2 - Create a new app.get route for the form to create or update new custom object data. Send this data along in the next route.
-
-// * Code for Route 2 goes here
-
-// TODO: ROUTE 3 - Create a new app.post route for the custom objects form to create or update your custom object data. Once executed, redirect the user to the homepage.
-
-// * Code for Route 3 goes here
-
-/** 
-* * This is sample code to give you a reference for how you should structure your calls. 
-
-* * App.get sample
-app.get('/contacts', async (req, res) => {
-    const contacts = 'https://api.hubspot.com/crm/v3/objects/contacts';
-    const headers = {
-        Authorization: `Bearer ${PRIVATE_APP_ACCESS}`,
-        'Content-Type': 'application/json'
-    }
-    try {
-        const resp = await axios.get(contacts, { headers });
-        const data = resp.data.results;
-        res.render('contacts', { title: 'Contacts | HubSpot APIs', data });      
-    } catch (error) {
-        console.error(error);
-    }
+// Homepage route
+app.get('/', async (req, res) => {
+  try {
+    console.log("Making API request to get objects with these properties: name, " + property2Name + ", " + property3Name);
+    
+    // Get custom objects - FIXED URL FORMAT
+    const response = await axios.get(
+      `${hubspotApiUrl}/crm/v3/objects/${objectType}?properties=name,${property2Name},${property3Name}`,
+      { headers }
+    );
+    
+    console.log("API Response:", response.data);
+    
+    const customObjects = response.data.results;
+    
+    // Render homepage template with data
+    res.render('homepage', {
+      title: 'Custom Objects | Integrating With HubSpot I Practicum',
+      customObjects: customObjects,
+      property2Name: property2Name, 
+      property3Name: property3Name
+    });
+  } catch (error) {
+    console.error('Error fetching custom objects:', error.response ? error.response.data : error.message);
+    res.status(500).send('Error fetching custom objects: ' + (error.response ? JSON.stringify(error.response.data) : error.message));
+  }
 });
 
-* * App.post sample
-app.post('/update', async (req, res) => {
-    const update = {
-        properties: {
-            "favorite_book": req.body.newVal
-        }
-    }
+// Update custom object form route
+app.get('/update-cobj', (req, res) => {
+  res.render('updates', {
+    title: 'Update Custom Object Form | Integrating With HubSpot I Practicum',
+    property2Name: property2Name,
+    property3Name: property3Name
+  });
+});
 
-    const email = req.query.email;
-    const updateContact = `https://api.hubapi.com/crm/v3/objects/contacts/${email}?idProperty=email`;
-    const headers = {
-        Authorization: `Bearer ${PRIVATE_APP_ACCESS}`,
-        'Content-Type': 'application/json'
+// Post route to create new custom object
+app.post('/update-cobj', async (req, res) => {
+  try {
+    // Get form data
+    const { name, breed, age } = req.body;
+    
+    console.log("Form data received:", { name, breed, age });
+    
+    // Create custom object with properties
+    const properties = {
+      name: name
     };
-
-    try { 
-        await axios.patch(updateContact, update, { headers } );
-        res.redirect('back');
-    } catch(err) {
-        console.error(err);
-    }
-
+    
+    // Add the other properties using their API names
+    properties[property2Name] = breed;
+    properties[property3Name] = age;
+    
+    console.log("Sending to HubSpot:", properties);
+    
+    // Make POST request to HubSpot API - FIXED URL FORMAT
+    await axios.post(
+      `${hubspotApiUrl}/crm/v3/objects/${objectType}`,
+      { properties },
+      { headers }
+    );
+    
+    // Redirect to homepage
+    res.redirect('/');
+  } catch (error) {
+    console.error('Error creating custom object:', error.response ? error.response.data : error.message);
+    res.status(500).send('Error creating custom object: ' + (error.response ? JSON.stringify(error.response.data) : error.message));
+  }
 });
-*/
 
-
-// * Localhost
-app.listen(3000, () => console.log('Listening on http://localhost:3000'));
+// Start server
+app.listen(port, () => {
+  console.log(`App listening at http://localhost:${port}`);
+  console.log("DEBUG INFO:");
+  console.log("- Using object type:", objectType);
+  console.log("- Using property names:", property2Name, property3Name);
+  console.log("- API token available:", process.env.PRIVATE_APP_TOKEN ? "Yes" : "No");
+});
